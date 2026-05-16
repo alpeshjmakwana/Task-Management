@@ -25,6 +25,9 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public ProjectResponse createProject(ProjectRequest request, String email) {
         User owner = getUser(email);
+        if(owner ==null){
+            throw new RuntimeException("user not found");
+        }
         Project project = Project.builder()
                 .name(request.getName()).description(request.getDescription()).owner(owner).build();
         return mapToResponse(projectRepository.save(project));

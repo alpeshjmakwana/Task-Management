@@ -22,11 +22,11 @@ public class TaskServiceImpl implements TaskService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
 
+
     @Override
     @Transactional
     public TaskResponse createTask(Long projectId, TaskRequest request, String email) {
-        User user = getUser(email);
-        Project project = projectRepository.findByIdAndOwner(projectId, user)
+        Project project = projectRepository.findByIdAndOwner_Email(projectId, email)
                 .orElseThrow(() -> new ForbiddenException(
                         "Access denied: You do not own project with id: " + projectId));
         Task task = Task.builder()
@@ -40,8 +40,7 @@ public class TaskServiceImpl implements TaskService {
     @Transactional(readOnly = true)
     public PagedResponse<TaskResponse> getTasks(Long projectId, int page, int size,
                                                 TaskStatus status, String email) {
-        User user = getUser(email);
-        Project project = projectRepository.findByIdAndOwner(projectId, user)
+        Project project = projectRepository.findByIdAndOwner_Email(projectId, email)
                 .orElseThrow(() -> new ForbiddenException(
                         "Access denied: You do not own project with id: " + projectId));
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
@@ -49,9 +48,10 @@ public class TaskServiceImpl implements TaskService {
                 ? taskRepository.findByProjectAndStatus(project, status, pageable)
                 : taskRepository.findByProject(project, pageable);
         List<TaskResponse> content = taskPage.getContent()
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+                .stream().map(this::mapToResponse).toList();
         return PagedResponse.<TaskResponse>builder()
                 .content(content).pageNumber(taskPage.getNumber())
+                .pageSize(taskPage.getSize())
                 .totalElements(taskPage.getTotalElements()).totalPages(taskPage.getTotalPages())
                 .build();
     }
